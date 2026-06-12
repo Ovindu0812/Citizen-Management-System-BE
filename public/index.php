@@ -59,6 +59,15 @@ elseif (preg_match('/\/api\/auth\/login\/?$/', $uri)) {
     $authController = new AuthController($db);
     $authController->login($data);
 }
+elseif (preg_match('/\/api\/users\/?$/', $uri)) {
+    if ($method !== 'GET') {
+        http_response_code(405);
+        echo json_encode(["message" => "Method not allowed. Please use GET to fetch users."]);
+        return;
+    }
+    $authController = new AuthController($db);
+    $authController->getAllUsers();
+}
 else {
     http_response_code(404);
     echo json_encode([

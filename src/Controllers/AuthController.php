@@ -79,6 +79,10 @@ class AuthController {
                     "email" => $user['email'],
                     "nic" => $user['nic'],
                     "phone" => $user['phone'],
+                    "province" => $user['province'],
+                    "district" => $user['district'],
+                    "birthday" => $user['birthday'],
+                    "created_at" => $user['created_at'],
                     "role" => $user['role']
                 ]
             ]);
@@ -86,5 +90,10 @@ class AuthController {
             http_response_code(401);
             echo json_encode(["message" => "Invalid ID/Email or password."]);
         }
+    }
+    public function getAllUsers() {
+        $users = $this->userModel->getAll();
+        http_response_code(200);
+        echo json_encode(["users" => $users]);
     }
 }
