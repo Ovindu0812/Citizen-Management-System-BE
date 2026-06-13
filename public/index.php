@@ -28,6 +28,7 @@ spl_autoload_register(function ($class_name) {
 
 use Config\Database;
 use Controllers\AuthController;
+use Controllers\ComplaintController;
 
 // Initialize Database connection
 $database = new Database();
@@ -62,11 +63,40 @@ elseif (preg_match('/\/api\/auth\/login\/?$/', $uri)) {
 elseif (preg_match('/\/api\/users\/?$/', $uri)) {
     if ($method !== 'GET') {
         http_response_code(405);
-        echo json_encode(["message" => "Method not allowed. Please use GET to fetch users."]);
+        echo json_encode(["message" => "Method not allowed."]);
         return;
     }
     $authController = new AuthController($db);
     $authController->getAllUsers();
+}
+elseif (preg_match('/\/api\/complaints\/user\/?$/', $uri)) {
+    if ($method !== 'GET') {
+        http_response_code(405);
+        echo json_encode(["message" => "Method not allowed."]);
+        return;
+    }
+    $complaintController = new ComplaintController($db);
+    $complaintController->getUserComplaints();
+}
+elseif (preg_match('/\/api\/complaints\/?$/', $uri)) {
+    $complaintController = new ComplaintController($db);
+    if ($method === 'POST') {
+        $complaintController->submit($data);
+    } elseif ($method === 'GET') {
+        $complaintController->getAllComplaints();
+    } else {
+        http_response_code(405);
+        echo json_encode(["message" => "Method not allowed."]);
+    }
+}
+elseif (preg_match('/\/api\/complaints\/([0-9]+)\/?$/', $uri, $matches)) {
+    $complaintController = new ComplaintController($db);
+    if ($method === 'PUT') {
+        $complaintController->updateComplaint($matches[1], $data);
+    } else {
+        http_response_code(405);
+        echo json_encode(["message" => "Method not allowed."]);
+    }
 }
 else {
     http_response_code(404);

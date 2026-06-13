@@ -19,3 +19,18 @@ CREATE TABLE IF NOT EXISTS citizens (
 INSERT INTO citizens (name, nic, email, province, district, birthday, phone, password_hash, role) 
 VALUES ('Administrator', '000000000V', 'admin@example.com', 'Western', 'Colombo', '1980-01-01', '0770000000', '$2y$10$wT0X7VfFhH4E3Y0oP9wG2eJ0q7R8r5hL6m.fU4Y8xMvHlZ9WpL1XW', 'admin')
 ON DUPLICATE KEY UPDATE id=id;
+
+CREATE TABLE IF NOT EXISTS complaints (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    user_id INT NOT NULL,
+    title VARCHAR(255) NOT NULL,
+    category VARCHAR(100) NOT NULL,
+    urgency VARCHAR(50) NOT NULL,
+    location VARCHAR(255) NOT NULL,
+    description TEXT NOT NULL,
+    status VARCHAR(50) DEFAULT 'pending',
+    admin_remarks TEXT,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    resolved_at TIMESTAMP NULL,
+    FOREIGN KEY (user_id) REFERENCES citizens(id) ON DELETE CASCADE
+);
