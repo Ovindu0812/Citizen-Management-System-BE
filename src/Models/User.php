@@ -54,6 +54,7 @@ class User {
     public function update($id, $data) {
         $query = "UPDATE " . $this->table_name . " 
                   SET name = :name, 
+                      username = :username,
                       province = :province, 
                       district = :district, 
                       birthday = :birthday, 
@@ -63,6 +64,7 @@ class User {
         $stmt = $this->conn->prepare($query);
         
         $stmt->bindParam(":name", $data['name']);
+        $stmt->bindParam(":username", $data['username']);
         $stmt->bindParam(":province", $data['province']);
         $stmt->bindParam(":district", $data['district']);
         $stmt->bindParam(":birthday", $data['birthday']);

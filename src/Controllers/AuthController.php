@@ -100,6 +100,7 @@ class AuthController {
                 "user" => [
                     "id" => $user['id'],
                     "name" => $user['name'],
+                    "username" => $user['username'],
                     "email" => $user['email'],
                     "nic" => $user['nic'],
                     "phone" => $user['phone'],

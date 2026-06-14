@@ -18,7 +18,7 @@ class UserController {
         }
 
         if (
-            empty($data->name) || empty($data->province) || 
+            empty($data->name) || empty($data->username) || empty($data->province) || 
             empty($data->district) || empty($data->birthday) || empty($data->phone)
         ) {
             Response::error("All fields are required.", 400);
@@ -28,9 +28,16 @@ class UserController {
         if (!preg_match('/^\d{4}-\d{2}-\d{2}$/', $data->birthday)) {
             Response::error("Invalid birthday format. Use YYYY-MM-DD.", 400);
         }
+        
+        // Check if username is already taken by another user
+        $existingUser = $this->userModel->findByUsername($data->username);
+        if ($existingUser && $existingUser['id'] != $id) {
+            Response::error("The username is already taken. Please choose another one.", 409);
+        }
 
         $userData = [
             'name' => $data->name,
+            'username' => $data->username,
             'province' => $data->province,
             'district' => $data->district,
             'birthday' => $data->birthday,
