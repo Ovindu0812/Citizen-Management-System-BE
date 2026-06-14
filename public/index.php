@@ -3,7 +3,7 @@
 // Allow CORS
 header("Access-Control-Allow-Origin: *");
 header("Content-Type: application/json; charset=UTF-8");
-header("Access-Control-Allow-Methods: POST, GET, OPTIONS");
+header("Access-Control-Allow-Methods: POST, GET, PUT, DELETE, OPTIONS");
 header("Access-Control-Max-Age: 3600");
 header("Access-Control-Allow-Headers: Content-Type, Access-Control-Allow-Headers, Authorization, X-Requested-With");
 
@@ -29,6 +29,8 @@ spl_autoload_register(function ($class_name) {
 use Config\Database;
 use Controllers\AuthController;
 use Controllers\ComplaintController;
+use Controllers\UserController;
+use Middleware\AuthMiddleware;
 
 // Initialize Database connection
 $database = new Database();
@@ -60,16 +62,31 @@ elseif (preg_match('/\/api\/auth\/login\/?$/', $uri)) {
     $authController = new AuthController($db);
     $authController->login($data);
 }
+elseif (preg_match('/\/api\/users\/([0-9]+)\/?$/', $uri, $matches)) {
+    AuthMiddleware::isAuthenticated();
+    $userController = new UserController($db);
+    if ($method === 'PUT') {
+        $userController->updateProfile($matches[1], $data);
+    } elseif ($method === 'DELETE') {
+        AuthMiddleware::isAdmin($db);
+        $userController->deleteUser($matches[1]);
+    } else {
+        http_response_code(405);
+        echo json_encode(["message" => "Method not allowed."]);
+    }
+}
 elseif (preg_match('/\/api\/users\/?$/', $uri)) {
+    AuthMiddleware::isAdmin($db);
     if ($method !== 'GET') {
         http_response_code(405);
         echo json_encode(["message" => "Method not allowed."]);
         return;
     }
-    $authController = new AuthController($db);
-    $authController->getAllUsers();
+    $userController = new UserController($db);
+    $userController->getAllUsers();
 }
 elseif (preg_match('/\/api\/complaints\/user\/?$/', $uri)) {
+    AuthMiddleware::isAuthenticated();
     if ($method !== 'GET') {
         http_response_code(405);
         echo json_encode(["message" => "Method not allowed."]);
@@ -81,8 +98,10 @@ elseif (preg_match('/\/api\/complaints\/user\/?$/', $uri)) {
 elseif (preg_match('/\/api\/complaints\/?$/', $uri)) {
     $complaintController = new ComplaintController($db);
     if ($method === 'POST') {
+        AuthMiddleware::isAuthenticated();
         $complaintController->submit($data);
     } elseif ($method === 'GET') {
+        AuthMiddleware::isAdmin($db);
         $complaintController->getAllComplaints();
     } else {
         http_response_code(405);
@@ -90,6 +109,7 @@ elseif (preg_match('/\/api\/complaints\/?$/', $uri)) {
     }
 }
 elseif (preg_match('/\/api\/complaints\/([0-9]+)\/?$/', $uri, $matches)) {
+    AuthMiddleware::isAdmin($db);
     $complaintController = new ComplaintController($db);
     if ($method === 'PUT') {
         $complaintController->updateComplaint($matches[1], $data);
@@ -97,6 +117,15 @@ elseif (preg_match('/\/api\/complaints\/([0-9]+)\/?$/', $uri, $matches)) {
         http_response_code(405);
         echo json_encode(["message" => "Method not allowed."]);
     }
+}
+elseif (preg_match('/^\/?$/', $uri)) {
+    if ($method !== 'GET') {
+        http_response_code(405);
+        echo json_encode(["message" => "Method not allowed."]);
+        return;
+    }
+    http_response_code(200);
+    echo json_encode(["message" => "Citizen Management System API is running."]);
 }
 else {
     http_response_code(404);

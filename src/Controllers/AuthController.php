@@ -3,6 +3,7 @@
 namespace Controllers;
 
 use Models\User;
+use Utils\Response;
 
 class AuthController {
     private $userModel;
@@ -12,36 +13,65 @@ class AuthController {
     }
 
     public function register($data) {
+        if (!$data) {
+            Response::error("Invalid or empty request body.", 400);
+        }
+
         if (
-            empty($data->name) || empty($data->nic) || empty($data->email) || 
+            empty($data->name) || empty($data->username) || empty($data->nic) || empty($data->email) || 
             empty($data->province) || empty($data->district) || empty($data->birthday) || 
             empty($data->phone) || empty($data->password)
         ) {
-            http_response_code(400);
-            echo json_encode(["message" => "All fields are required."]);
-            return;
+            Response::error("All fields are required.", 400);
+        }
+
+        // Validate Email
+        if (!filter_var($data->email, FILTER_VALIDATE_EMAIL)) {
+            Response::error("Invalid email format.", 400);
+        }
+        
+        // Ensure email is entirely lowercase
+        if (preg_match('/[A-Z]/', $data->email)) {
+            Response::error("Email must be entirely in lowercase letters.", 400);
+        }
+
+        // Validate NIC (Sri Lanka format: 9 digits + V/X or 12 digits)
+        if (!preg_match('/^([0-9]{9}[vVxX]|[0-9]{12})$/', $data->nic)) {
+            Response::error("Invalid NIC format. Use 9 digits with V/X or 12 digits.", 400);
+        }
+
+        // Validate Phone (Basic 10-digit format)
+        if (!preg_match('/^[0-9]{10}$/', $data->phone)) {
+            $phone = preg_replace('/^\+94/', '0', $data->phone);
+            if (!preg_match('/^[0-9]{10}$/', $phone)) {
+                Response::error("Invalid phone number. Use 10 digits (e.g., 0771234567).", 400);
+            }
+            $data->phone = $phone;
         }
 
         if (strlen($data->password) < 6) {
-            http_response_code(400);
-            echo json_encode(["message" => "Password must be at least 6 characters long."]);
-            return;
+            Response::error("Password must be at least 6 characters long.", 400);
+        }
+
+        // Validate birthday format (YYYY-MM-DD) strict
+        if (!preg_match('/^\d{4}-(0[1-9]|1[0-2])-(0[1-9]|[12]\d|3[01])$/', $data->birthday)) {
+            Response::error("Invalid birthday format. Use YYYY-MM-DD with valid month (01-12) and day (01-31).", 400);
         }
 
         // Check if user exists
         $existingUser = $this->userModel->findByEmailOrNic($data->email);
         $existingNic = $this->userModel->findByEmailOrNic($data->nic);
+        $existingUsername = $this->userModel->findByUsername($data->username);
         
-        if ($existingUser || $existingNic) {
-            http_response_code(409);
-            echo json_encode(["message" => "An account with this Email or NIC already exists."]);
-            return;
+        if ($existingUser || $existingNic || $existingUsername) {
+            Response::error("An account with this Username, Email, or NIC already exists.", 409);
         }
 
         $hashedPassword = password_hash($data->password, PASSWORD_BCRYPT);
 
         $userData = [
             'name' => $data->name,
+            'username' => $data->username,
             'nic' => $data->nic,
             'email' => $data->email,
             'province' => $data->province,
@@ -52,27 +82,21 @@ class AuthController {
         ];
 
         if ($this->userModel->create($userData)) {
-            http_response_code(201);
-            echo json_encode(["message" => "Account created successfully!"]);
+            Response::success("Account created successfully!", [], 201);
         } else {
-            http_response_code(503);
-            echo json_encode(["message" => "Unable to create account."]);
+            Response::error("Unable to create account.", 500);
         }
     }
 
     public function login($data) {
-        if (empty($data->idOrEmail) || empty($data->password)) {
-            http_response_code(400);
-            echo json_encode(["message" => "Please provide ID/Email and password."]);
-            return;
+        if (!$data || empty($data->username) || empty($data->password)) {
+            Response::error("Please provide a username and password.", 400);
         }
 
-        $user = $this->userModel->findByEmailOrNic($data->idOrEmail);
+        $user = $this->userModel->findByUsername($data->username);
 
         if ($user && password_verify($data->password, $user['password_hash'])) {
-            http_response_code(200);
-            echo json_encode([
-                "message" => "Login successful!",
+            Response::success("Login successful!", [
                 "user" => [
                     "id" => $user['id'],
                     "name" => $user['name'],
@@ -87,13 +111,7 @@ class AuthController {
                 ]
             ]);
         } else {
-            http_response_code(401);
-            echo json_encode(["message" => "Invalid ID/Email or password."]);
+            Response::error("Invalid username or password.", 401);
         }
-    }
-    public function getAllUsers() {
-        $users = $this->userModel->getAll();
-        http_response_code(200);
-        echo json_encode(["users" => $users]);
     }
 }

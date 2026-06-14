@@ -42,7 +42,7 @@ class Complaint {
 
     public function getAll() {
         // Fetch complaints with user details
-        $query = "SELECT c.*, u.name as citizenName, u.email as citizenEmail 
+        $query = "SELECT c.*, u.name as citizenName, u.email as citizenEmail, u.nic as citizenNic 
                   FROM " . $this->table_name . " c 
                   JOIN citizens u ON c.user_id = u.id 
                   ORDER BY c.created_at DESC";
