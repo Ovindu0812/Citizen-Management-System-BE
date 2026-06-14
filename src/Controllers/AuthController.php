@@ -49,8 +49,8 @@ class AuthController {
             $data->phone = $phone;
         }
 
-        if (strlen($data->password) < 6) {
-            Response::error("Password must be at least 6 characters long.", 400);
+        if (strlen($data->password) < 3) {
+            Response::error("Password must be at least 3 characters long.", 400);
         }
 
         // Validate birthday format (YYYY-MM-DD) strict
